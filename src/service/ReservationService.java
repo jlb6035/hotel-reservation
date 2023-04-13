@@ -4,18 +4,18 @@ import model.customer.Customer;
 import model.reservation.Reservation;
 import model.room.IRoom;
 import model.room.Room;
-import model.room.RoomType;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ReservationService {
     private static final ReservationService INSTANCE = new ReservationService();
 
     Set<IRoom> rooms = new HashSet<>();
     private static Map<String, List<Reservation>> reservations = new HashMap<>();
+    private static List<IRoom> availableRooms = new ArrayList<>();
+
 
     private ReservationService(){
 
@@ -55,26 +55,27 @@ public class ReservationService {
 
 
     public Collection<IRoom> findRooms(Date checkInDate, Date checkOutDate, String customerEmail) throws Exception {
-        List<IRoom> availableRooms = new ArrayList<>();
         List<Reservation> reservationList = getAllReservations();
-
         if (reservationList.isEmpty()){
             availableRooms.addAll(rooms);
         }
-
-
-        for(int i = 0; i < reservationList.size(); i++){
-            if(isRoomAvailable(reservationList.get(i), checkInDate, checkOutDate)){
-                availableRooms.add(reservationList.get(i).getiRoom());
+        for (IRoom room : rooms){
+            for (Reservation reservation : reservationList){
+                if (room.getRoomNumber().equalsIgnoreCase(reservation.getiRoom().getRoomNumber()) && isRoomAvailable(reservation, checkInDate, checkOutDate)){
+                    availableRooms.add(room);
+                } else {
+                    if (room.getRoomNumber().equals(reservation.getiRoom().getRoomNumber())){
+                        availableRooms.remove(room);
+                    }
+                }
             }
-
         }
-
         return availableRooms;
     }
 
     public boolean isRoomAvailable(Reservation reservation, Date checkInDate, Date checkOutDate){
-        return checkInDate.after(reservation.getCheckOut()) || checkOutDate.before(reservation.getCheckIn());
+        return (((checkInDate.before(reservation.getCheckIn())) && (checkOutDate.before(reservation.getCheckIn()))) ||
+                ((checkInDate.after(reservation.getCheckOut())) && ((checkOutDate.after(reservation.getCheckOut())))));
     }
 
     public boolean isValidDateRange(Date checkIn, Date checkOut){
